@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Select environment'
+        description: "Select environment"
         required: true
         default: qa
         type: choice
@@ -21,37 +21,28 @@ jobs:
       TEST_ENV: ${{ github.event.inputs.environment }}
 
     steps:
-      # 1️⃣ Checkout
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: npm
 
-      # 3️⃣ Install dependencies
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm ci
+          npx playwright install --with-deps
 
-      # 4️⃣ Install Playwright browsers
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-
-      # 5️⃣ Run tests
-      - name: Run tests (ENV=${{ env.TEST_ENV }})
+      - name: Run Playwright tests with Allure
         run: npm run test:allure
 
-      # 6️⃣ Generate Allure report
-      - name: Generate Allure report
-        run: npx allure generate allure-results --clean -o allure-report
+      - name: Generate Allure Report
+        run: npm run allure:generate
 
-      # 7️⃣ Upload Allure report
-      - name: Upload Allure report
+      - name: Upload Allure Report
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report-${{ env.TEST_ENV }}
+          name: allure-report-${{ github.event.inputs.environment }}
           path: allure-report
-          retention-days: 14
