@@ -1,78 +1,61 @@
-name: Playwright Tests with Allure
+name: Playwright Tests (Allure)
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Which environment will be executed"
+        required: true
+        type: choice
+        default: qa
+        options:
+          - qa
+          - dev
+          - staging
 
 jobs:
-  playwright-tests:
-    name: Run Playwright Tests
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     env:
-      TEST_ENV: qa
+      TEST_ENV: ${{ github.event.inputs.environment || 'qa' }}
       CI: true
 
     steps:
-      # -----------------------------
-      # Checkout repository
-      # -----------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # -----------------------------
-      # Setup Node.js
-      # -----------------------------
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
+          node-version: "20.x"
 
-      # -----------------------------
-      # Install dependencies
-      # -----------------------------
+      - name: Debug - Environment
+        run: |
+          echo "Running tests on environment: $TEST_ENV"
+
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ ! -f package-lock.json ]; then
+            npm install
+          else
+            npm ci
+          fi
+          npx playwright install --with-deps
 
-      # -----------------------------
-      # Install Playwright browsers
-      # -----------------------------
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-
-      # -----------------------------
-      # Run Playwright tests with Allure
-      # -----------------------------
       - name: Run Playwright tests with Allure
         run: npm run test:allure
 
-      # -----------------------------
-      # Generate Allure report
-      # -----------------------------
       - name: Generate Allure report
         if: always()
         run: npm run allure:generate
 
-      # -----------------------------
-      # Upload Allure report as artifact
-      # -----------------------------
       - name: Upload Allure report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-report
+          name: allure-report-${{ github.run_id }}-${{ env.TEST_ENV }}
           path: allure-report
-
-      # -----------------------------
-      # Upload raw Allure results (optional)
-      # -----------------------------
-      - name: Upload Allure results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-results
-          path: allure-results
+          retention-days: 30
+          if-no-files-found: warn
