@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 function getEnvData(env) {
-  const filePath = path.resolve(__dirname, `../testdata/env/${env}.json`);
+  const filePath = path.resolve(__dirname, `../testdata/${env}.json`);
   try {
     const rawData = fs.readFileSync(filePath);
     return JSON.parse(rawData);
